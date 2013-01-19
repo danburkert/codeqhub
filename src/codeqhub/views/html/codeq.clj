@@ -1,6 +1,9 @@
-(ns codeqhub.views.html.repository
-  (:require [hiccup.core]))
+(ns codeqhub.views.html.codeq)
 
-(defn codeq
-  [text]
+(defn codeq [codeq]
+  "Return HTML view of codeq."
+  nil)
+
+(defn codeqs [codeqs]
+  "Return HTML view of codeq list."
   nil)
