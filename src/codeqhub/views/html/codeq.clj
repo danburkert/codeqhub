@@ -1,9 +1,16 @@
-(ns codeqhub.views.html.codeq)
+(ns codeqhub.views.html.codeq
+  (:require [codeqhub.models.codeq :as codeq]
+            [codeqhub.helpers.url :as url]))
 
-(defn codeq [codeq]
+(defn codeq [codeq commit ref codeq]
   "Return HTML view of codeq."
-  nil)
+  (:code/highlight (:codeq/code codeq)))
 
-(defn codeqs [codeqs]
+(defn codeqs [repo commit ref codeqs]
   "Return HTML view of codeq list."
-  nil)
+  [:ol
+   (for [codeq codeqs]
+     (if-let [id (codeq/identifier codeq)]
+       [:li
+        [:a {:href (url/codeq repo commit ref codeq)}
+         (codeq/identifier codeq)]]))])

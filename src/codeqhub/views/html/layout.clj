@@ -5,7 +5,8 @@
 (defn common [title & body]
   (hp/html5
     [:head
-     [:title title]]
+     [:title title]
+     (hp/include-css "/css/pygments.css")]
     [:body
      [:div {:id "header"}
       [:h1  "codeqhub"]]

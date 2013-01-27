@@ -6,7 +6,7 @@
                  [compojure "1.1.3"]
                  [ring "1.1.7"]
                  [hiccup "1.0.2"]]
-  :plugins [[lein-ring "0.7.5"]]
+  :plugins [[lein-ring "0.8.0"]]
   :ring {:handler codeqhub.handler/app}
   :profiles
   {:dev {:dependencies [[ring-mock "0.1.3"]]}})

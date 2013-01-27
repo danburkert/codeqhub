@@ -1,6 +1,7 @@
 (ns codeqhub.views.edn.repository
   (:require [codeqhub.models.repository :as repo]
-            [codeqhub.models.ref :as ref]))
+            [codeqhub.models.ref :as ref]
+            [codeqhub.helpers.url :as url]))
 
 (defn repo
   "Format repo into map suitable for sending to client as edn."
@@ -10,7 +11,7 @@
      :user (repo/name repo)
      :stars (repo/stars repo)
      :forks (repo/forks repo)
-     :uri (repo/github-url repo)
+     :uri (url/github repo)
      :default-branch (ref/label (repo/default-branch repo))
      :branches (mapv
                  (comp (partial zipmap [:label :commit])

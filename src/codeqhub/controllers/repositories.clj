@@ -1,16 +1,32 @@
 (ns codeqhub.controllers.repositories
-  (:require [codeqhub.models.repository :as repo]
+  (:require [compojure.core :refer [defroutes GET]]
             [codeqhub.database :refer [get-db]]
-            [compojure.core :refer [defroutes GET]]))
+            [codeqhub.models.repository :as repo]
+            [codeqhub.models.commit :as commit]
+            [codeqhub.models.ref :as ref]
+            [codeqhub.views.html.layout :refer [common]]
+            [codeqhub.views.html.repository :as repository.view]))
 
-(defn show-repository []
+(defn show-repository [user name]
   "Show repository."
-  nil)
+  (let [db (get-db)
+        repo (repo/repo db user name)
+        branch (repo/default-branch repo)
+        commit (ref/commit branch)
+        namespaces (commit/namespaces commit)]
+    (common (str user "/" name " | codeqhub")
+            (repository.view/repo repo commit branch namespaces))))
 
 (defn show-repositories
   "Show all repositories, or if user is supplied, all repositories of the user."
-  ([] nil)
-  ([user] nil))
+  ([]
+   (let [db (get-db)
+         repos (repo/repos db)]
+     (common "codeqhub" (repository.view/repos repos))))
+  ([user]
+   (let [db (get-db)
+         repos (repo/repos db user)]
+     (common user (repository.view/repos repos)))))
 
 (defroutes routes
   (GET "/" [] (show-repositories))
