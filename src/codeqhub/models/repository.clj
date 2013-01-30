@@ -22,44 +22,41 @@
        (d/entity db)))
 
 (defn refs
-  "Return set of all refs in repository with repo metadata."
-  [repo] (map #(with-meta % {:repo repo}) (:repo/refs repo)))
+  "Return set of all refs in repository."
+  [repo] (:repo/refs repo))
 
 (defn ref
-  "Return the ref with label in repository with repo metadata."
+  "Return the ref with label in repository."
   [repo label] (first (filter (comp (partial = label) :ref/label) (refs repo))))
 
 (defn branches
-  "Return the set of branches in the repository with repo metadata."
+  "Return the set of branches in the repository."
   [repo] (filter (comp (partial = :branch) :git/type) (:repo/refs repo)))
 
 (defn branch
-  "Return the branch in the repository with label, or nil if it does not exist.
-   The branch includes repo metadata."
+  "Return the branch in the repository with label, or nil if it does not exist."
   [repo label]
   (first (filter (comp (partial = label) ref/label) (branches repo))))
 
 (defn tags
-  "Return the set of tags in the repository with repo metadata."
+  "Return the set of tags in the repository."
   [repo] (filter (comp (partial = :tag) :git/type) (:repo/refs repo)))
 
 (defn tag
-  "Return the tag in the repository with label, or nil if it does not exist.
-   The tag includes repo metadata."
+  "Return the tag in the repository with label, or nil if it does not exist."
   [repo label] (first (filter (comp (partial = label) ref/label) (tags repo))))
 
 (defn default-branch
-  "Return the default branch of the repository with repo metadata."
-  [repo] (with-meta (:repo/defaultBranch repo) {:repo repo}))
+  "Return the default branch of the repository."
+  [repo] (:repo/defaultBranch repo {:repo repo}))
 
 (defn commits
-  "Return sequence of all commits in repository with repo metadata."
-  [repo] (map #(with-meta % {:repo repo}) (:repo/commits repo)))
+  "Return sequence of all commits in repository."
+  [repo] (:repo/commits repo))
 
 (defn commit
-  "Return commit in repository identified by sha with repo metadata.  sha is
-   case insensitive, and may match a prefix of the actual sha, as long as it is
-   a unique prefix."
+  "Return commit in repository identified by sha.  sha is case insensitive,
+   and may match a prefix of the actual sha, as long as it is a unique prefix."
   [repo sha]
   (let [matches
         (filter (comp (partial re-matches (re-pattern (str "(?i)^" sha ".*$")))

@@ -32,38 +32,34 @@
 
 (defn codeqs
   "Return sequence of the codeqs contained in the commit and namespace
-   (if provided).  Each returned codeq contains commit metadata."
+   (if provided)."
   ([commit]
    (let [db (d/entity-db commit)
          commit-id (:db/id commit)]
-     (-> (util/qes '[:find ?cq
-                     :in $ % ?cm
-                     :where (commit-codeqs ?cm ?cq)]
-                   db util/rules commit-id)
-         (with-meta {:commit commit}))))
+     (util/qes '[:find ?cq
+                 :in $ % ?cm
+                 :where (commit-codeqs ?cm ?cq)]
+               db util/rules commit-id
+               )))
   ([commit namespace]
    (let [codeqs (codeqs commit)]
      (filter #(= (codeq/namespace %) namespace) codeqs))))
 
 (defn codeq
-  "Return the codeq with matching codename in the specified commit.  The
-   returned codeq has commit metadata."
+  "Return the codeq with matching codename in the specified commit."
   [commit codename]
   (let [db (d/entity-db commit)
         commit-id (:db/id commit)]
-    (-> (util/qes '[:find ?cq
+    (first (util/qes '[:find ?cq
                     :in $ % ?cm ?codename
                     :where
                     [?cq :clj/def ?def]
                     [?def :code/name ?codename]
                     (commit-codeqs ?cm ?cq)]
-                  db util/rules commit-id codename)
-        first
-        (with-meta {:commit commit}))))
+                  db util/rules commit-id codename))))
 
 (defn namespaces
-  "Return a map of namespaces to codeqs in the commit, the returned codeqs have
-   commit metadata."
+  "Return a map of namespaces to codeqs in the commit."
   [commit]
   (dissoc (group-by codeq/namespace (sort-by codeq/location (codeqs commit)))
           nil))

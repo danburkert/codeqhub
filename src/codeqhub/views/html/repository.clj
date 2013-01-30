@@ -8,8 +8,9 @@
 
 (defn repo [repo & body]
   "Return the common repository layout."
-  [[:h2 (str (repo/user repo) "/" (repo/name repo))]
-   body])
+  (list
+    [:h2 (str (repo/user repo) "/" (repo/name repo))]
+    body))
 
 
 (defn repos [repos]

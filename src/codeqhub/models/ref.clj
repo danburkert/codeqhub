@@ -9,9 +9,9 @@
   (:ref/label ref))
 
 (defn commit
-  "Return the commit pointed to by the reference with ref metadata."
+  "Return the commit pointed to by the reference."
   [ref]
-  (with-meta (:ref/commit ref) {:ref ref}))
+  (:ref/commit ref {:ref ref}))
 
 (defn type
   "Return the type of the reference."

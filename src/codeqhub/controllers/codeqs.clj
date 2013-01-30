@@ -18,7 +18,7 @@
         (common "codeqhub" (codeq.view/codeq repo commit ref codeq)))
       (if-let [commit (repo/commit repo commit)]
         (let [codeq (commit/codeq commit (str namespace "/" codename))]
-          (common "codeqhub" (namespace.view/namespace repo commit nil codeq)))))))
+          (common "codeqhub" (codeq.view/codeq repo commit nil codeq)))))))
 
 (defroutes routes
   (GET "/:user/:name/codeq/:commit/:namespace/:codename"
