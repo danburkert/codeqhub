@@ -5,17 +5,17 @@
             [codeqhub.models.commit :as commit]
             [codeqhub.models.ref :as ref]
             [codeqhub.views.html.layout :refer [common]]
-            [codeqhub.views.html.repository :as repository.view]))
+            [codeqhub.views.html.repository :as repo.view]))
 
 (defn show-repository [user name]
   "Show repository."
   (let [db (get-db)
         repo (repo/repo db user name)
         branch (repo/default-branch repo)
-        commit (ref/commit branch)
-        namespaces (commit/namespaces commit)]
+        commit (ref/commit branch)]
     (common (str user "/" name " | codeqhub")
-            (repository.view/repo repo commit branch namespaces))))
+            (repo.view/repo repo
+                            (commit.view/commit commit)))))
 
 (defn show-repositories
   "Show all repositories, or if user is supplied, all repositories of the user."

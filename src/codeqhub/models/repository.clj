@@ -14,74 +14,82 @@
                           (comp util/uri->user :v)))
         (map (comp (partial d/entity db) :e)))))
 
-(defn repo [db user name]
+(defn repo
+  "Return the repository in the database identified by the user and repo name."
+  [db user name]
   (->> (util/user-repo->uri user name)
        (util/index-get-id db :repo/uri)
        (d/entity db)))
 
-(defn refs [repo]
-  "Return set of all refs in repository."
-  (:repo/refs repo))
+(defn refs
+  "Return set of all refs in repository with repo metadata."
+  [repo] (map #(with-meta % {:repo repo}) (:repo/refs repo)))
 
-(defn ref [repo label]
-  "Return the ref with label in repository."
-  (first (filter (comp (partial = label) :ref/label) (refs repo))))
+(defn ref
+  "Return the ref with label in repository with repo metadata."
+  [repo label] (first (filter (comp (partial = label) :ref/label) (refs repo))))
 
-(defn branches [repo]
-  "Return the set of branches in the repository."
-  (filter (comp (partial = :branch) :git/type) (:repo/refs repo)))
+(defn branches
+  "Return the set of branches in the repository with repo metadata."
+  [repo] (filter (comp (partial = :branch) :git/type) (:repo/refs repo)))
 
-(defn branch [repo label]
-  "Return the branch in the repository with label, or nil if it does not exist."
+(defn branch
+  "Return the branch in the repository with label, or nil if it does not exist.
+   The branch includes repo metadata."
+  [repo label]
   (first (filter (comp (partial = label) ref/label) (branches repo))))
 
-(defn tags [repo]
-  "Return the set of tags in the repository."
-  (filter (comp (partial = :tag) :git/type) (:repo/refs repo)))
+(defn tags
+  "Return the set of tags in the repository with repo metadata."
+  [repo] (filter (comp (partial = :tag) :git/type) (:repo/refs repo)))
 
-(defn tag [repo label]
-  "Return the tag in the repository with label, or nil if it does not exist."
-  (first (filter (comp (partial = label) ref/label) (tags repo))))
+(defn tag
+  "Return the tag in the repository with label, or nil if it does not exist.
+   The tag includes repo metadata."
+  [repo label] (first (filter (comp (partial = label) ref/label) (tags repo))))
 
-(defn default-branch [repo]
-  "Return the default branch of the repository."
-  (:repo/defaultBranch repo))
+(defn default-branch
+  "Return the default branch of the repository with repo metadata."
+  [repo] (with-meta (:repo/defaultBranch repo) {:repo repo}))
 
-(defn commits [repo]
-  "Return set of all commits in repository."
-  (:repo/commits repo))
+(defn commits
+  "Return sequence of all commits in repository with repo metadata."
+  [repo] (map #(with-meta % {:repo repo}) (:repo/commits repo)))
 
-(defn commit [repo sha]
-  "Return commit in repository identified by sha.  sha is case insensitive,
-   and may match a prefix of the actual sha, as long as it is a unique prefix."
+(defn commit
+  "Return commit in repository identified by sha with repo metadata.  sha is
+   case insensitive, and may match a prefix of the actual sha, as long as it is
+   a unique prefix."
+  [repo sha]
   (let [matches
-        (filter (comp (partial re-matches (re-pattern (str "(?i)^" sha ".*$"))) :git/sha)
+        (filter (comp (partial re-matches (re-pattern (str "(?i)^" sha ".*$")))
+                      :git/sha)
                 (commits repo))]
     (if (> (count matches) 1)
       nil
       (first matches))))
 
-(defn stars [repo]
+(defn stars
   "Return number of stars in repository."
-  (:repo/stars repo))
+  [repo] (:repo/stars repo))
 
-(defn forks [repo]
+(defn forks
   "Return number of forks in repository."
-  (:repo/forks repo))
+  [repo] (:repo/forks repo))
 
-(defn parent [repo]
+(defn parent
   "Return the parent repository of repo, i.e. the repository that repo is
    forked from."
-  (:repo/parent repo))
+  [repo] (:repo/parent repo))
 
-(defn name [repo]
+(defn name
   "Return the name of the repository."
-  (util/uri->repo (:repo/uri repo)))
+  [repo] (util/uri->repo (:repo/uri repo)))
 
-(defn user [repo]
+(defn user
   "Return the repository owner's Github username."
-  (util/uri->user (:repo/uri repo)))
+  [repo] (util/uri->user (:repo/uri repo)))
 
-(defn uri [repo]
+(defn uri
   "Return the URI of the repository."
-  (:repo/uri repo))
+  [repo] (:repo/uri repo))

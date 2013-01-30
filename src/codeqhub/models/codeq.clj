@@ -43,3 +43,10 @@
     (let [idx (.lastIndexOf name "/")]
       (when (> idx 0)
         (.substring name (inc idx))))))
+
+(defn highlight
+  "Return the highlighted text of the codeq."
+  [codeq]
+  (-> codeq
+      :codeq/code
+      :code/highlight))
