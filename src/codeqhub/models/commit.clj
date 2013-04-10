@@ -51,12 +51,12 @@
   (let [db (d/entity-db commit)
         commit-id (:db/id commit)]
     (first (util/qes '[:find ?cq
-                    :in $ % ?cm ?codename
-                    :where
-                    [?cq :clj/def ?def]
-                    [?def :code/name ?codename]
-                    (commit-codeqs ?cm ?cq)]
-                  db util/rules commit-id codename))))
+                       :in $ % ?cm ?codename
+                       :where
+                       [?cq :clj/def ?def]
+                       [?def :code/name ?codename]
+                       (commit-codeqs ?cm ?cq)]
+                     db util/rules commit-id codename))))
 
 (defn namespaces
   "Return a map of namespaces to codeqs in the commit."

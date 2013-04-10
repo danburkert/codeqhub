@@ -4,19 +4,27 @@
             [codeqhub.models.util :as util])
   (:refer-clojure :exclude [name ref]))
 
+(defn- valid-user? [user] (re-matches #"^\w[\-\w]*$" user))
+(defn- valid-name? [name] (re-matches #"^\w[\_\-\w]+$" name))
+
 (defn repos
   "Return sequence of all repositories belonging to user, or all repositories
    if user is not specified."
   ([db] (util/find-all-by db :repo/uri))
   ([db user]
+   {:pre [(valid-user? user)]}
    (->> (d/index-range db :repo/uri (util/user->uri user) nil)
         (take-while (comp (partial = user)
                           (comp util/uri->user :v)))
-        (map (comp (partial d/entity db) :e)))))
+        (map :e)
+        (map (partial d/entity db))
+        (map #(:repo %)))))
 
 (defn repo
   "Return the repository in the database identified by the user and repo name."
   [db user name]
+  {:pre [(valid-user? user)
+         (valid-name? name)]}
   (->> (util/user-repo->uri user name)
        (util/index-get-id db :repo/uri)
        (d/entity db)))

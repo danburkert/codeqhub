@@ -1,6 +1,6 @@
 (ns codeqhub.test.handler
   (:use clojure.test
-        ring.mock.request  
+        ring.mock.request
         codeqhub.handler))
 
 (deftest test-app

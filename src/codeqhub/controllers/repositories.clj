@@ -14,8 +14,7 @@
         repo (repo/repo db user name)
         branch (repo/default-branch repo)
         commit (ref/commit branch)
-        namespaces (commit/namespaces commit)
-        ]
+        namespaces (commit/namespaces commit)]
     (common (str user "/" name " | codeqhub")
             (repo.view/repo repo
                             (commit.view/commit repo commit branch namespaces)))))

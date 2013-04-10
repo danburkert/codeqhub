@@ -3,7 +3,8 @@
             [clojure.data.generators :as gen]
             [datomic.api :as d]
             [codeqhub.models.repository :as repo]
-            [codeqhub.models.util :as util]))
+            [codeqhub.models.util :as util])
+  (:refer-clojure :exclude [ref]))
 
 (defn alphanumeric-char
   "Returns a random alpha numeric ascii character."
@@ -32,7 +33,7 @@
 (defn date []
   (java.util.Date. (gen/geometric (/ 1 1359832244000))))
 
-(defn id []
+(defn tempid []
   (d/tempid :db.part/user))
 
 (defn location []
@@ -42,90 +43,121 @@
          (+ start-line (gen/geometric 1/10)) " "
          (gen/geometric 0.1))))
 
-(defn gen-child-refs [parent-id parent-attr ref-gen child-attr]
-  (let [child-id (id)]
+(defn with-ref [parent-id attr gen-child]
+  (let [child-id (tempid)]
     (vec (concat
-           [[:db/add parent-id parent-attr child-id]]
-           (ref-gen child-attr child-id)))))
+           [[:db/add parent-id attr child-id]]
+           (gen-child child-id)))))
 
 (defn defop []
   (rand-nth ["def" "defn" "defprotocol" "defmacro"
              "definline" "defmethod" "defmulti" "defn-"
              "defonce" "defstruct" "deftype"]))
 
-(defn codeq [& {:keys [blob-id type] :or {blob-id (id)
-                                          type :clj/def}}]
-  (let [codeq-id (id)
-        code-id (id)
-        codename-id (id)]
-    (vec
-      (concat
-        [[:db/add codeq-id :codeq/file blob-id]
-         [:db/add codeq-id :codeq/loc (location)]
-         [:db/add codeq-id type code-id]
-         [:db/add code-id :code/sha (sha)]
-         [:db/add code-id :code/text (gen/string)]
-         [:db/add code-id :code/highlight (gen/string)]
-         [:db/add codeq-id :codeq/code codename-id]
-         [:db/add codename-id :code/name (alphanumeric-string)]]
-        (if (= type :clj/def)
-          [[:db/add codeq-id :clj/defop (defop)]]
-          [])))))
+(defn codeq
+  ([] (codeq (tempid)))
+  ([id & {:keys [blob-id type] :or {blob-id (tempid)
+                                    type :clj/def}}]
+   (let [code-id (tempid)
+         codename-id (tempid)]
+     (vec
+       (concat [[:db/add id :codeq/file blob-id]
+                [:db/add id :codeq/loc (location)]
+                [:db/add id type code-id]
+                [:db/add code-id :code/sha (sha)]
+                [:db/add code-id :code/text (gen/string)]
+                [:db/add code-id :code/highlight (gen/string)]
+                [:db/add id :codeq/code codename-id]
+                [:db/add codename-id :code/name (alphanumeric-string)]]
+               (if (= type :clj/def)
+                 [[:db/add id :clj/defop (defop)]]
+                 []))))))
 
 (declare node)
 
-(defn file [& {:keys [file-id blob-id] :or {file-id (id)
-                                            blob-id (id)}}]
-  (let [filename-id (id)
-        path-id (id)]
-    (vec (apply concat
-                [[:db/add file-id :node/filename filename-id]
-                 [:db/add filename-id :file/name (gen/string)]
-                 [:db/add file-id :node/paths path-id]
-                 [:db/add path-id :file/name (gen/string)]
-                 [:db/add file-id :node/object blob-id]
-                 [:db/add blob-id :git/sha (sha)]
-                 [:db/add blob-id :git/type :blob]]
-                (codeq :blob-id blob-id :type :clj/ns)
-                (gen/reps (gen/geometric 1/10)
-                          #(codeq :blob-id blob-id))))))
+(defn file
+  ([] (file (tempid)))
+  ([id & {:keys [blob-id filename-id path-id]
+          :or {blob-id (tempid)
+               filename-id (tempid)
+               path-id (tempid)}}]
+   (vec (apply concat
+               [[:db/add id :node/filename filename-id]
+                [:db/add filename-id :file/name (gen/string)]
+                [:db/add id :node/paths path-id]
+                [:db/add path-id :file/name (gen/string)]
+                [:db/add id :node/object blob-id]
+                [:db/add blob-id :git/sha (sha)]
+                [:db/add blob-id :git/type :blob]]
+               (codeq (tempid) :blob-id blob-id :type :clj/ns)
+               (gen/reps (gen/geometric 1/10)
+                         #(codeq (tempid) :blob-id blob-id))))))
 
-(defn tree [& {:keys [tree-id] :or {tree-id (id)}}]
-  (vec (apply concat
-              [[:db/add tree-id :git/type :tree]
-               [:db/add tree-id :git/sha (sha)]]
-              (gen/reps (gen/geometric 1/4)
-                        #(gen-child-refs tree-id :tree/nodes node :node-id)))))
+(defn tree
+  ([] (tree (tempid)))
+  ([id]
+   (vec (apply concat
+               [[:db/add id :git/type :tree]
+                [:db/add id :git/sha (sha)]]
+               (gen/reps (gen/geometric 1/4)
+                         #(with-ref id :tree/nodes node))))))
 
-(defn node [& {:keys [node-id] :or {node-id (id)}}]
-  (gen/weighted {#(tree :tree-id node-id) 1
-                 #(file :file-id node-id) 66}))
+(defn node [id]
+  (gen/weighted {#(tree id) 1
+                 #(file id) 5}))
 
-(defn commit [& {:keys [commit-id] :or {commit-id (id)}}]
-  (let [author-id (id)
-        committer-id (id)
-        root-id (id)]
-    (vec (concat
-                [[:db/add commit-id :git/sha (sha)]
-                 [:db/add commit-id :commit/message (gen/string)]
-                 [:db/add commit-id :commit/committedAt (date)]
-                 [:db/add commit-id :commit/authoredAt (date)]
-                 [:db/add commit-id :commit/committer committer-id]
-                 [:db/add committer-id :email/address (gen/string)]
-                 [:db/add commit-id :commit/author author-id]
-                 [:db/add author-id :email/address (gen/string)]
-                 [:db/add commit-id :commit/tree root-id]]
-                (tree :tree-id root-id)))))
+(defn commit
+  [id & {:keys [repo-id author-id committer-id]
+         :or {author-id (tempid)
+              committer-id (tempid)}}]
+  (vec
+    (apply concat
+           [[:db/add id :git/sha (sha)]
+            [:db/add id :commit/message (gen/string)]
+            [:db/add id :commit/committedAt (date)]
+            [:db/add id :commit/authoredAt (date)]
+            [:db/add id :commit/committer committer-id]
+            [:db/add committer-id :email/address (gen/string)]
+            [:db/add id :commit/author author-id]
+            [:db/add author-id :email/address (gen/string)]]
+           ;(with-ref id :commit/tree tree)
+           (when repo-id [[:db/add repo-id :repo/commits id]])
+           (gen/reps #(let [n (gen/geometric (/ 3 5))] (if (< n 3) n 0))
+                     (fn [] (let [parent-id (tempid)]
+                              (conj
+                                (commit parent-id :repo-id repo-id
+                                        :author-id author-id
+                                        :committer-id committer-id)
+                                [[:db/add id :commit/parents parent-id]])))))))
+
+(defn ref
+  [id & {:keys [repo-id type commit-id label]
+         :or {type (rand-nth [:tag :branch])
+              label (gen/string)}}]
+  (vec (concat
+         [[:db/add id :git/type type]
+          [:db/add id :ref/label label]
+          [:db/add id :ref/commit commit-id]]
+         (if commit-id
+           [[:db/add id :ref/commit commit-id]]
+           (let [commit-id (tempid)]
+             (concat
+               [[:db/add id :ref/commit commit-id]]
+               (commit commit-id :repo-id repo-id))))
+         (if repo-id
+           [[:db/add repo-id :repo/refs id]]))))
 
 (defn repo [& {:keys [user name] :or {user (alphanumeric-string)
                                       name (alphanumeric-string)}}]
-  (let [repo-id (id)]
+  (let [repo-id (tempid)]
     (vec (apply concat
                 [[:db/add repo-id :repo/uri (util/user-repo->uri user name)]
-                 [:db/add repo-id :repo/stars (gen/int)]
-                 [:db/add repo-id :repo/forks (gen/int)]]
+                 [:db/add repo-id :repo/stars (rand-int 1000)]
+                 [:db/add repo-id :repo/forks (rand-int 50)]]
                 (gen/reps (gen/geometric 1/10)
-                          #(gen-child-refs repo-id :repo/commits commit :commit-id))))))
+                          (fn [] (ref (tempid))))))))
+
+(repo)
 
 (defn gen-db-conn
   "Generate an in-memory database to use for tests, and return the connection."
@@ -143,6 +175,11 @@
   (let [conn (gen-db-conn)]
     (d/transact conn schema)
     (:db-after @(d/transact conn tx-data))))
+
+(defn db-add
+  "Add transaction data to database and return new database."
+  [db tx-data]
+  (:db-after (d/with db tx-data)))
 
 (def schema
      [
